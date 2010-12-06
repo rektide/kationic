@@ -1,0 +1,46 @@
+<html>
+
+<head>
+<title>kationize :: </title>
+</head>
+
+<body>
+
+<script src="http://code.jquery.com/jquery-1.4.4.js" type="text/javascript" />
+<script src="lib/backbone/backbone.js" type="text/javascript" />
+<script src="http://www.google.com/jsapi?key=INSERT-YOUR-KEY" type="text/javascript" charset="utf-8" />
+
+<script type="text/javascript">
+$(function(){
+	google.load('feeds', '2')
+
+	// object to bind feed events
+	var feedStatus = {}
+	_.extend(feedStatus, Backbone.Events)
+
+	// Feed model
+	window.Feed = Backbone.Model.extend({
+		defaults: { 
+			url: "http://voodoowarez.com/kationize.feed",
+			feed: null
+		}
+		initialize: function() {
+			this.change()
+		}
+		change: function() {
+			var feed = this.get("feed")
+			if(feed)
+				feed.unsubscribe()
+			feed = new google.feeds.push.Feed(this.get("url"))
+			this.set("feed",feed)
+			feed.subscribe(function(){feedStatus.trigger("entry")})
+		}
+	})
+
+	Backbone.history.start()
+})
+</script>
+
+</body>
+
+</html>
