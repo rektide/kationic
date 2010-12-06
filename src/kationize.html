@@ -17,7 +17,7 @@ $(function(){
 	// object to bind feed events
 	var feedStatus = {}
 	_.extend(feedStatus, Backbone.Events)
-	function entryEvent() {feedStatus.trigger("entry")}
+	function fireEntryEvent() {feedStatus.trigger("entry")}
 
 	// Feed model
 	window.Feed = Backbone.Model.extend({
@@ -28,21 +28,68 @@ $(function(){
 		initialize: function() {
 			this.change()
 		}
+		// change feed address
 		change: function() {
-			var feed = this.get("feed")
+			// re-init Google Feed object
+			var feed = this.get("feed"),
+			  self = this
 			if(feed)
 				feed.unsubscribe()
 			feed = new google.feeds.push.Feed(this.get("url"))
 			this.set("feed",feed)
 
-			feed.setNumEntries(1)
-			feed.load(entryEvent)
-			feed.subscribe(entryEvent)
+			feed.setResultFormat(google.feeds.Feed.JSON_FORMAT) // json
+			feed.setNumEntries(1) // only interested in to pelement
+			feed.subscribe(fireEntryEvent) // listen for changes
+
+			// capture feed when created
+			feed.load(function(result){
+				self.setContent("feed",result.feed)
+				if(result.feed.entries.length>0)
+					fireEntryEvent()
+			})
+			// model listens for changes in its feed
+			feedStatus.bind("entry",function(){
+				self.set("entry",self.get("feed").entries[0])
+			})
+		}
+	})
+
+	// Feed view
+	window.FeedView = Backbone.View.extend({
+		tagName: "div",
+		className: "feedEntry",
+		template: _.template($('#feed-template').html())
+
+		events: {
+			"click .feedLink": "navTo"
+		}
+
+		initialize: function() {
+			_.bindAll(this, 'render', 'navTo')
+			this.model.view = this
+		}
+
+		// draw template
+		render: function() {
+			$(this.el).html(this.template(this.model.toJSON()))
+			return this
+		}
+
+		navTo: function() {
+			if(window.console && window.console.log)
+				window.console.log("navTo event")
 		}
 	})
 
 	Backbone.history.start()
 })
+</script>
+
+<script type="text/template" id="feed-template">
+	<h2 class="feedHeader"><%= entry.title %></h2>
+	<div class="feedContent"><%= entry.content %></div>
+	<div class="feedDate"><a href="<%= entry.link %>" class="feedLink"><%= entry.publishedDate %></a></div>
 </script>
 
 </body>
