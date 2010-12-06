@@ -17,6 +17,7 @@ $(function(){
 	// object to bind feed events
 	var feedStatus = {}
 	_.extend(feedStatus, Backbone.Events)
+	function entryEvent() {feedStatus.trigger("entry")}
 
 	// Feed model
 	window.Feed = Backbone.Model.extend({
@@ -33,7 +34,10 @@ $(function(){
 				feed.unsubscribe()
 			feed = new google.feeds.push.Feed(this.get("url"))
 			this.set("feed",feed)
-			feed.subscribe(function(){feedStatus.trigger("entry")})
+
+			feed.setNumEntries(1)
+			feed.load(entryEvent)
+			feed.subscribe(entryEvent)
 		}
 	})
 
